@@ -1,0 +1,13 @@
+# mamba env create -f environment.yml   then   mamba activate phy408-zlab
+name: phy408-zlab
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - pandas
+  - matplotlib
+  - iminuit
+  - jupyterlab
+  - pytest
