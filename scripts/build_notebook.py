@@ -18,23 +18,24 @@ md(r"""
 **Goal (60 min).** You will measure the mass $M_Z$ and the width $\Gamma_Z$ of the Z boson from dimuon events. The detector delivers data in three runs of increasing size. After each run you **top up** your data set and repeat the full chain, then watch your measurement get sharper:
 
 ```
-   ┌──────────────┐   ┌───────┐   ┌──────┐   ┌─────┐   ┌──────────────────┐
-   │ take data    │ → │ clean │ → │ show │ → │ fit │ → │ M_Z ± σ, Γ_Z ± σ │ ──┐
-   │ (top up)     │   └───────┘   └──────┘   └─────┘   └──────────────────┘   │
-   └──────────────┘ ←─────────────────── repeat for run 2 and run 3 ──────────┘
+   ┌───────────┐   ┌───────┐   ┌──────┐   ┌─────┐   ┌───────────┐   ┌──────────────────┐
+   │ take data │ → │ clean │ → │ show │ → │ fit │ → │ check fit │ → │ M_Z ± σ, Γ_Z ± σ │ ──┐
+   │ (top up)  │   └───────┘   └──────┘   └─────┘   └───────────┘   └──────────────────┘   │
+   └───────────┘ ←───────────────────────── repeat for run 2 and run 3 ──────────────────────┘
 ```
 
-At the end you put all your results on **one vertical plot** and **combine** them.
+At the end you put all your results on **one vertical plot**, check the fit errors with **Monte Carlo**, and **combine** the runs.
 
 | Part | What you do | Time | Lecture link |
 |---|---|---|---|
 | 0 | Set up | 5 min | W1 L2: Python, NumPy, Pandas, Git |
-| 1 | Iteration 1: the full chain on run 1 | 20 min | W2 L2 four-vectors · W3 L2 Breit–Wigner, mixtures · W4 L1 χ², MLE, p-value · W4 L2 covariance, Δχ² = 1 |
-| 2 | Iterations 2 and 3: top up and refit | 12 min | W2 L1 law of large numbers, estimators |
-| 3 | Show the improvement | 8 min | W2 L2 PDG ideogram · W3 L1 CLT, 1/√N |
-| 4 | Combine the measurements | 10 min | W2 L2 PDG weighted average · W5 L1 correlations |
-| 5 | Save and push to GitHub | 5 min | W1 L2 Git |
-| Bonus | Monte Carlo toys · systematic error | at home | W5 L1 error propagation · W5 L2 Monte Carlo |
+| 1 | Iteration 1: the full chain on run 1, then the fit checklist | 22 min | W2 L2 four-vectors · W3 L2 Breit–Wigner, mixtures · W4 L1 χ², MLE, p-value, pulls · W4 L2 covariance, Δχ² = 1 |
+| 2 | Iterations 2 and 3: top up, refit, check | 10 min | W2 L1 law of large numbers, estimators |
+| 3 | Show the improvement | 6 min | W2 L2 PDG ideogram · W3 L1 CLT, 1/√N |
+| 4 | Is the fit error right? Check it with Monte Carlo | 7 min | W5 L2 Monte Carlo methods |
+| 5 | Combine the measurements | 7 min | W2 L2 PDG weighted average · W5 L1 correlations |
+| 6 | Save and push to GitHub | 3 min | W1 L2 Git |
+| Bonus | A systematic error | at home | W5 L1 statistical and systematic errors |
 
 **How to work.** Run the cells from top to bottom with **Shift + Enter**. You only need to *edit* the cells marked ✍️. Cells marked 💡 explain the physics or statistics. Write your answers to the questions directly in the markdown cells that say *Your answer*.
 """)
@@ -63,7 +64,8 @@ import matplotlib.pyplot as plt
 
 import zlab
 from zlab import (take_data, clean, invariant_mass, fit_zpeak, results_table,
-                  weighted_average, plotting, M_Z_TRUE, GAMMA_Z_TRUE)
+                  weighted_average, fit_checklist, plotting, diagnostics, montecarlo,
+                  M_Z_TRUE, GAMMA_Z_TRUE)
 
 print("zlab is ready.  The three runs will contain", zlab.RUN_PLAN, "events (before cleaning).")
 """)
@@ -78,7 +80,7 @@ print("Using seed", SEED)
 # =====================================================================
 md(r"""
 ---
-## Part 1: Iteration 1, the full chain on run 1 (20 min)
+## Part 1: Iteration 1, the full chain on run 1 (22 min)
 
 ### 1.1 Take data
 
@@ -240,7 +242,36 @@ md(r"""
 *Your answer:*
 """)
 md(r"""
-### 1.6 Record the result of iteration 1
+### 1.6 Check the fit: the five-point checklist
+
+💡 **A fit always gives you numbers, even when it is wrong.** So before we write down $M_Z \pm \sigma$, we go through a checklist, the way a pilot does before take-off. These are the steps of Week 4 Lesson 1, done for you by one function:
+
+| # | Question | What we look at | ✓ if… |
+|---|---|---|---|
+| 1 | Did MINUIT find a minimum? | `valid` flag and EDM (estimated distance to minimum) | valid and EDM tiny |
+| 2 | Does the model describe the data? | $\chi^2/\mathrm{ndf}$ and $p$-value | $p > 0.05$ |
+| 3 | Do the bin pulls look like $\mathcal{N}(0,1)$? | fraction of pulls within $\pm2$ | about 95 % (at least 85 %) |
+| 4 | Are the errors symmetric? | Hesse $\pm\sigma$ vs MINOS $-\sigma_\mathrm{lo}/+\sigma_\mathrm{hi}$ | they agree within 20 % |
+| 5 | Is the result stable? | refit with 2 GeV bins instead of 1 GeV | shift well below $1\sigma$ |
+
+▶️ Run the checklist on the run-1 fit:
+""")
+code(r"""
+checks1 = fit_checklist(r1, m1)
+""")
+md(r"""
+▶️ Check 3 in a picture: the 40 bin pulls should look like a standard Gaussian.
+""")
+code(r"""
+fig = diagnostics.plot_pull_histogram(r1)
+""")
+md(r"""
+✍️ **Question 1.5.** (a) How many checks passed? (b) In check 4, which parameter has the more asymmetric errors? Does that agree with what you saw in the $\Gamma_Z$ profile plot? (c) Check 5 changes only the bin width, and the data are the same. Why should a good result not depend on that choice?
+
+*Your answer:*
+""")
+md(r"""
+### 1.7 Record the result of iteration 1
 
 We keep three dictionaries, each keyed by the run number $k$:
 * `masses[k]`: the clean masses of run $k$, kept so that we can top up later
@@ -259,13 +290,13 @@ results_table(cumulative_fits.values())
 # =====================================================================
 md(r"""
 ---
-## Part 2: Iterations 2 and 3, top up and refit (12 min)
+## Part 2: Iterations 2 and 3, top up, refit, check (10 min)
 
 ✍️ **Question 2.1. Predict first!** Run 2 is 4× bigger than run 1, and run 3 is 4× bigger than run 2. If the error shrinks like $1/\sqrt N$, what error on $M_Z$ do you expect after topping up run 2 (runs 1+2), and after run 3 (runs 1+2+3)? Write down your two numbers *before* you run the next cells.
 
 *Your prediction:*
 
-▶️ This helper repeats Part 1 (take data, clean, compute the mass) for any run:
+▶️ This helper repeats the first steps of Part 1 (take data, clean, compute the mass) for any run:
 """)
 code(r"""
 def take_and_clean(run):
@@ -290,6 +321,9 @@ cumulative_fits[run] = fit_zpeak(pooled, label="runs " + "+".join(str(k) for k i
 
 print(cumulative_fits[run])
 fig = plotting.plot_mass(pooled, cumulative_fits[run], title=f"Iteration {run}: " + cumulative_fits[run].label)
+
+# (c) check the fit before we trust it
+checks = fit_checklist(cumulative_fits[run], pooled)
 """)
 md(r"""
 ### Iteration 3: top up with run 3
@@ -306,6 +340,7 @@ cumulative_fits[run] = fit_zpeak(pooled, label="runs " + "+".join(str(k) for k i
 
 print(cumulative_fits[run])
 fig = plotting.plot_mass(pooled, cumulative_fits[run], title=f"Iteration {run}: " + cumulative_fits[run].label)
+checks = fit_checklist(cumulative_fits[run], pooled)
 """)
 code(r"""
 # safety check: did you change the run number?
@@ -317,11 +352,35 @@ cumul_list = [cumulative_fits[k] for k in (1, 2, 3)]
 print("All three runs are in. Topping up (cumulative) results:")
 results_table(cumul_list)
 """)
+md(r"""
+### What does a failing checklist look like?
+
+So far every check has passed. To see the checklist catch a mistake, we make one on purpose: we fit with a **wrong detector resolution**, $\sigma_\mathrm{res} = 2.0$ GeV instead of $0.97$ GeV. We fit the same wrong model twice, first on run 1 only and then on all the data.
+
+▶️ Wrong model, run 1 only (about 500 events):
+""")
+code(r"""
+wrong_small = fit_zpeak(masses[1], label="WRONG model, run 1", sigma_res=2.0)
+checks = fit_checklist(wrong_small, masses[1])
+""")
+md(r"""
+▶️ The same wrong model on all the data (about 11 000 events):
+""")
+code(r"""
+wrong_big = fit_zpeak(pooled, label="WRONG model, runs 1+2+3", sigma_res=2.0)
+checks = fit_checklist(wrong_big, pooled)
+fig = plotting.plot_mass(pooled, wrong_big, title="A wrong model: look at the pull panel")
+""")
+md(r"""
+✍️ **Question 2.2.** (a) Which checks fail for the wrong model on all the data? Describe the pattern in the pull panel: where is the model too high, and where too low? (b) The same wrong model passed on run 1. Why can a small data set not detect the mistake? What does that tell you about a fit that "passes" on very little data?
+
+*Your answer:*
+""")
 
 # =====================================================================
 md(r"""
 ---
-## Part 3: Show the improvement (8 min)
+## Part 3: Show the improvement (6 min)
 
 ### 3.1 The vertical plot
 
@@ -351,9 +410,54 @@ md(r"""
 # =====================================================================
 md(r"""
 ---
-## Part 4: Combine the measurements (10 min)
+## Part 4: Is the fit error right? Check it with Monte Carlo (7 min)
 
-### 4.1 PDG weighted average of the three independent runs
+💡 **What does "$M_Z = 91.32 \pm 0.11$ GeV" really mean?** It means: *if we could repeat the whole experiment many times, the fitted $M_Z$ would scatter around the true value with a standard deviation of 0.11 GeV.* The fit predicts this number from **one** data set, using the curvature of $\chi^2$.
+
+With a simulation we **can** repeat the experiment (Week 5 Lesson 2). That gives an independent check of the fit error, in three steps:
+
+1. Record 100 new copies of each run: same size, new random numbers.
+2. Fit every copy exactly as you fitted your own data.
+3. The spread (standard deviation) of the 100 fitted values is the **Monte Carlo error**:
+
+$$\sigma_\mathrm{MC} = \sqrt{\frac{1}{K-1}\sum_{k=1}^{K}\left(\hat\theta_k - \bar{\hat\theta}\right)^2}, \qquad K = 100.$$
+
+If the fit is honest, $\sigma_\mathrm{fit} \approx \sigma_\mathrm{MC}$. With $K=100$, $\sigma_\mathrm{MC}$ itself is only known to about $1/\sqrt{2(K-1)} \approx 7\,\%$, so "agree" means within about 10 to 15 %.
+
+▶️ **Step 1 and 2:** repeat each run 100 times and fit every copy (about 30 s, so be patient):
+""")
+code(r"""
+toys = {}
+for run in (1, 2, 3):
+    toys[run] = montecarlo.repeat_experiment(run, n_toys=100)
+    print(f"run {run}: 100 repeated experiments fitted")
+""")
+md(r"""
+▶️ **Step 3:** compare the error from your fit with the spread of the repeated experiments:
+""")
+code(r"""
+comparison = montecarlo.compare_errors(run_fits, toys)
+comparison.round(4)
+""")
+md(r"""
+▶️ The same comparison as a picture. Each histogram shows the 100 repeated results. The red curve is a Gaussian centred on the truth, with the width **your fit** predicted. If the fit error is right, the curve follows the histogram.
+""")
+code(r"""
+fig = montecarlo.plot_mc_errors(run_fits, toys, "M_Z")
+fig = montecarlo.plot_mc_errors(run_fits, toys, "Gamma_Z")
+""")
+md(r"""
+✍️ **Question 4.1.** (a) Look at the column `ratio fit/MC`. Do $\sigma_\mathrm{fit}$ and $\sigma_\mathrm{MC}$ agree? Use the column `± on sigma_MC` to decide what "agree" means. (b) From run 1 to run 3, by what factor does $\sigma_\mathrm{MC}$ shrink? Compare with $1/\sqrt{N}$. (c) At the real LHC we cannot repeat the experiment 100 times. Where could the repeated data sets come from instead?
+
+*Your answer:*
+""")
+
+# =====================================================================
+md(r"""
+---
+## Part 5: Combine the measurements (7 min)
+
+### 5.1 PDG weighted average of the three independent runs
 
 Recipe from Week 2 Lesson 2: $w_i = 1/\sigma_i^2$, $\bar x = \sum w_i x_i/\sum w_i$, $\sigma_{\bar x}=1/\sqrt{\sum w_i}$, then check $\chi^2/\mathrm{ndf}$ and apply the scale factor $S=\sqrt{\chi^2/\mathrm{ndf}}$ only if $S>1$. The code is in `zlab/combine.py`.
 """)
@@ -367,12 +471,12 @@ print(f"Compare with ONE fit to all data (iteration 3):\n"
       f"  Gamma_Z = {final.values['Gamma_Z']:.4f} +- {final.errors['Gamma_Z']:.4f} GeV")
 """)
 md(r"""
-✍️ **Question 4.1.** (a) Does the weighted average agree with the single fit to all the data? Should it? (b) Which run dominates the average, and why? (c) Ask your neighbour (who has a different seed) for their $S$. If yours is above 1, what does that tell you?
+✍️ **Question 5.1.** (a) Does the weighted average agree with the single fit to all the data? Should it? (b) Which run dominates the average, and why? (c) Ask your neighbour (who has a different seed) for their $S$. If yours is above 1, what does that tell you?
 
 *Your answer:*
 """)
 md(r"""
-### 4.2 ⚠️ A trap: averaging the topping-up results
+### 5.2 ⚠️ A trap: averaging the topping-up results
 
 Someone suggests: *"We have three results from the iterations, so let's average those too!"* Let's try it.
 """)
@@ -384,7 +488,7 @@ print(f"honest answer (fit to all data)       : M_Z = {final.values['M_Z']:.4f} 
 print(f"\nThe naive error is {final.errors['M_Z'] / naive.error_raw:.2f}x too small.")
 """)
 md(r"""
-✍️ **Question 4.2.** Why is the naive error too small? (Hint: how many times has each run-1 event been used? Which assumption of the weighted-average formula is broken? Week 5 Lesson 1, correlations.)
+✍️ **Question 5.2.** Why is the naive error too small? (Hint: how many times has each run-1 event been used? Which assumption of the weighted-average formula is broken? Week 5 Lesson 1, correlations.)
 
 *Your answer:*
 """)
@@ -392,7 +496,7 @@ md(r"""
 # =====================================================================
 md(r"""
 ---
-## Part 5: Save your work and push it to GitHub (5 min)
+## Part 6: Save your work and push it to GitHub (3 min)
 """)
 code(r"""
 os.makedirs("results", exist_ok=True); os.makedirs("figures", exist_ok=True)
@@ -400,9 +504,11 @@ table = results_table(run_list + cumul_list)
 table.to_csv("results/zpeak_results.csv", index=False)
 fig_forest.savefig("figures/forest_plot.png", dpi=150, bbox_inches="tight")
 fig_prec.savefig("figures/precision_vs_N.png", dpi=150, bbox_inches="tight")
+comparison.to_csv("results/fit_vs_mc_errors.csv", index=False)
 print(f"FINAL (seed {SEED}):  M_Z = {final.values['M_Z']:.3f} +- {final.errors['M_Z']:.3f} GeV,"
       f"  Gamma_Z = {final.values['Gamma_Z']:.3f} +- {final.errors['Gamma_Z']:.3f} GeV")
-print("Saved results/zpeak_results.csv, figures/forest_plot.png, figures/precision_vs_N.png")
+print("Saved results/zpeak_results.csv, results/fit_vs_mc_errors.csv,\n"
+      "      figures/forest_plot.png, figures/precision_vs_N.png")
 """)
 md(r"""
 Save the notebook (**Ctrl + S**). Then, in a terminal inside the lab folder (your clone of **your fork**, see the README), commit your notebook with your answers, your results and your figures:
@@ -421,44 +527,16 @@ Then open a pull request on GitHub. **On Colab?** Use *File → Download → Dow
 
 * **Clean before you analyse.** Six small, testable cuts turned messy raw rows into physics events, and the cut flow documents each one.
 * **A fit gives a number *and* a covariance.** The "±" is the curvature of $\chi^2$; the profile $\Delta\chi^2=1$ crossing is the same error read graphically, correlations included.
+* **Check a fit before you trust it.** Five quick checks (convergence, $p$-value, pulls, symmetric errors, stability) caught a wrong model, but only once there were enough data to see it.
 * **More data → smaller error, as $1/\sqrt N$.** Topping up from about 500 to 11 000 events cut the error by about a factor of $\sqrt{22}\approx 4.7$.
+* **The fit error means "the spread over repeated experiments".** Monte Carlo repeats of each run confirmed that $\sigma_\mathrm{fit} \approx \sigma_\mathrm{MC}$.
 * **Combine only independent results.** The weighted average of the three runs reproduces the fit to all the data. Averaging cumulative fits counts the same events more than once and gives an error that is far too small.
 """)
 
 # =====================================================================
 md(r"""
 ---
-## Bonus A (at home): is the error honest? Monte Carlo toys (W5 L2)
-
-Repeat the run-1 experiment 200 times with different random seeds, fit each, and histogram the **pull** $(\hat\theta - \theta_\mathrm{true})/\hat\sigma$. If the errors are right, the pulls follow a standard Gaussian: mean 0 and width 1. (About 30 s.)
-""")
-code(r"""
-import tempfile, warnings
-warnings.filterwarnings("ignore")
-toy_dir = tempfile.mkdtemp()
-pulls_M, pulls_G = [], []
-for toy in range(200):
-    raw = pd.read_csv(take_data(run=1, seed=10_000 + toy, outdir=toy_dir, verbose=False))
-    r = fit_zpeak(invariant_mass(clean(raw, verbose=False)[0]))
-    pulls_M.append((r.values["M_Z"] - M_Z_TRUE) / r.errors["M_Z"])
-    pulls_G.append((r.values["Gamma_Z"] - GAMMA_Z_TRUE) / r.errors["Gamma_Z"])
-
-fig, axes = plt.subplots(1, 2, figsize=(11, 4))
-x = np.linspace(-4, 4, 200)
-for ax, p, name in zip(axes, [pulls_M, pulls_G], [r"$M_Z$", r"$\Gamma_Z$"]):
-    ax.hist(p, bins=np.linspace(-4, 4, 25), density=True, alpha=0.6, label="200 toy experiments")
-    ax.plot(x, np.exp(-x**2 / 2) / np.sqrt(2 * np.pi), "r-", label=r"$\mathcal{N}(0,1)$")
-    ax.set_title(f"pull of {name}: mean = {np.mean(p):+.2f}, width = {np.std(p):.2f}")
-    ax.set_xlabel("pull"); ax.legend()
-fig.tight_layout()
-""")
-md(r"""
-✍️ **Question A.** Are the pulls consistent with mean 0 and width 1? What would a width of 1.5 have meant?
-
-*Your answer:*
-""")
-md(r"""
-## Bonus B (at home): when does more data stop helping? A systematic error (W5 L1)
+## Bonus (at home): when does more data stop helping? A systematic error (W5 L1)
 
 The resolution $\sigma_\mathrm{res} = 0.97$ GeV was fixed in the fit, but the calibration only knows it to $\pm 0.03$ GeV. Refit with $\sigma_\mathrm{res}$ shifted up and down and take the shift in the result as the systematic error. Unlike the statistical error, it does **not** shrink when you top up.
 """)
@@ -487,7 +565,7 @@ ax.set_xlabel("events in fit window, N"); ax.set_ylabel(r"error on $\Gamma_Z$ [G
 fig.tight_layout()
 """)
 md(r"""
-✍️ **Question B.** (a) Why does $\sigma_\mathrm{res}$ change $\Gamma_Z$ so much but $M_Z$ hardly at all? (b) Extrapolate the statistical error on $\Gamma_Z$ with $1/\sqrt N$: how many events would you need before the systematic error dominates? What would you then do to improve the measurement?
+✍️ **Bonus question.** (a) Why does $\sigma_\mathrm{res}$ change $\Gamma_Z$ so much but $M_Z$ hardly at all? (b) Extrapolate the statistical error on $\Gamma_Z$ with $1/\sqrt N$: how many events would you need before the systematic error dominates? What would you then do to improve the measurement?
 
 *Your answer:*
 """)

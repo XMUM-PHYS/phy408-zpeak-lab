@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from zlab import M_Z_TRUE, GAMMA_Z_TRUE, clean, fit_zpeak, invariant_mass, take_data, weighted_average
+from zlab import fit_checklist, repeat_experiment, M_Z_TRUE, GAMMA_Z_TRUE, clean, fit_zpeak, invariant_mass, take_data, weighted_average
 from zlab.detector import M_MU
 
 
@@ -42,3 +42,18 @@ def test_fit_recovers_truth(tmp_path):
     assert r.valid
     assert abs(r.values["M_Z"] - M_Z_TRUE) < 3 * r.errors["M_Z"]
     assert abs(r.values["Gamma_Z"] - GAMMA_Z_TRUE) < 3 * r.errors["Gamma_Z"]
+
+
+def test_checklist_passes_good_fit_and_catches_wrong_model(tmp_path):
+    raw = pd.read_csv(take_data(3, outdir=tmp_path, verbose=False))
+    m = invariant_mass(clean(raw, verbose=False)[0])
+    good = fit_checklist(fit_zpeak(m), m, verbose=False)
+    assert (good["verdict"] == "✓").all()
+    wrong = fit_checklist(fit_zpeak(m, sigma_res=2.0), m, verbose=False)
+    assert (wrong["verdict"] == "⚠").any()
+
+
+def test_monte_carlo_spread_matches_fit_error():
+    toys = repeat_experiment(2, n_toys=40)
+    ratio = toys["dM_Z"].mean() / toys["M_Z"].std(ddof=1)
+    assert 0.7 < ratio < 1.4
