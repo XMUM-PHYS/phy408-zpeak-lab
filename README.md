@@ -1,19 +1,34 @@
-# PHY408 Lab: Measuring the Z boson, one run at a time
+# PHY408 Lab: one workflow, two measurements
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SiewYan/phy408-zpeak-lab/blob/main/Z_peak_lab.ipynb)
+[![Open Z lab in Colab](https://img.shields.io/badge/Colab-Z%20boson%20lab-F9AB00?logo=googlecolab)](https://colab.research.google.com/github/SiewYan/phy408-zpeak-lab/blob/main/Z_peak_lab.ipynb)
+[![Open fraud lab in Colab](https://img.shields.io/badge/Colab-card--fraud%20lab-F9AB00?logo=googlecolab)](https://colab.research.google.com/github/SiewYan/phy408-zpeak-lab/blob/main/Fraud_lab.ipynb)
 ![tests](https://github.com/SiewYan/phy408-zpeak-lab/actions/workflows/tests.yml/badge.svg)
 
-A one-hour hands-on session that ties together **Weeks 1 to 5** of PHY408 Data Intensive Science.
+A one-hour hands-on session that ties together **Weeks 1 to 5** of PHY408 Data Intensive Science. It comes in **two versions that follow exactly the same steps**. Pick one:
 
-You are the analyst of a (simulated) CMS-like experiment. The detector delivers dimuon data in **three runs** of increasing size (1 000, 4 000 and 16 000 events). After each run you go round the same loop:
+| | ⚛️ `Z_peak_lab.ipynb` | 💳 `Fraud_lab.ipynb` |
+|---|---|---|
+| You are… | the analyst of a CMS-like experiment | a data analyst at a bank |
+| The data arrive as… | three **runs** of dimuon events | three **batches** of card payments |
+| The one number per record | invariant mass $`m_{\mu\mu}`$ from four-vectors | amount in MYR = amount × exchange rate |
+| The signal | the Z boson peak | the spike of a card-testing bot |
+| The background | Drell–Yan dimuons | normal customers' spending |
+| The "resolution" | detector smearing of the muon momenta | blur from the card network's currency conversion |
+| You measure | $`M_Z`$ and $`\Gamma_Z`$ | the bot's target amount $`\mu`$ and the **fraud rate** $`f`$ |
+
+> 💳 **What is card testing?** Criminals buy stolen card numbers in bulk, but many are already cancelled. A bot checks which ones still work by making many tiny purchases of about the same amount at a small online shop. The cards that go through are then used for big purchases or resold. To a bank, the attack shows up as a burst of small, nearly identical payments: a **spike** in the histogram of payment amounts.
+
+In both versions, you go round the same loop three times:
 
 ```
- top up data → clean data → show data → fit data → check fit → measure M_Z ± σ and Γ_Z ± σ
+ top up data → clean data → show data → fit data → check fit → measure the parameters ± σ
       ↑                                                                                │
-      └──────────────────────────── repeat for run 2 and run 3 ────────────────────────┘
+      └───────────────────────── repeat for the 2nd and 3rd delivery ──────────────────┘
 ```
 
-At the end you draw every result on **one vertical plot** and watch the error bars shrink like $`1/\sqrt{N}`$. You then check that the fit errors are honest by **repeating the experiment with Monte Carlo**, and **combine** the runs into a single measurement of the Z boson mass $`M_Z`$ and width $`\Gamma_Z`$.
+At the end you draw every result on **one vertical plot** and watch the error bars shrink like $`1/\sqrt{N}`$. You then check that the fit errors are honest by **repeating the experiment with Monte Carlo**, and **combine** the three deliveries into one measurement.
+
+*All data are simulated, so the true values are known and you can check your answer. The online shop is fictional.*
 
 ---
 
@@ -23,9 +38,9 @@ At the end you draw every result on **one vertical plot** and watch the error ba
 |---|---|
 | Load and inspect data with Pandas, run code from a Git repository | Week 1 Lesson 2: UNIX, Git and Python essentials |
 | Estimators get better with more data (law of large numbers) | Week 2 Lesson 1: Probability theory |
-| Four-vectors, invariant mass, the Z peak, the PDG weighted average | Week 2 Lesson 2: From collision to number |
+| Building one number per record (invariant mass or MYR amount); the PDG weighted average | Week 2 Lesson 2: From collision to number |
 | Why the error falls as $`1/\sqrt{N}`$ (Central Limit Theorem) | Week 3 Lesson 1: Continuous distributions |
-| Breit–Wigner line shape, exponential background, mixture of PDFs | Week 3 Lesson 2: Probability distributions in physics |
+| Signal + background mixture of PDFs (Breit–Wigner or Gaussian on an exponential) | Week 3 Lesson 2: Probability distributions in physics |
 | $`\chi^2`$ as a cost function, maximum likelihood, goodness of fit and $`p`$-value | Week 4 Lesson 1: Least squares, likelihood and regression |
 | A five-point fit checklist: convergence, $`p`$-value, pulls, symmetric errors, stability | Week 4 Lesson 1: the fit-validation steps |
 | Hessian $`\to`$ covariance matrix $`\to`$ errors and correlations; $`\Delta\chi^2 = 1`$ | Week 4 Lesson 2: Parameter uncertainties and covariance |
@@ -38,7 +53,7 @@ At the end you draw every result on **one vertical plot** and watch the error ba
 
 ### Option A: Google Colab (nothing to install, recommended if your laptop is not set up)
 
-1. Click the **Open in Colab** badge at the top of this page.
+1. Click one of the two **Colab** badges at the top of this page (Z boson lab or card-fraud lab).
 2. Sign in with a Google account.
 3. Run the first code cell. It installs `iminuit` and downloads this lab for you.
 4. Continue from **Part 0** of the notebook.
@@ -84,16 +99,17 @@ You should see a column of ✓ and the line `Test fit: M_Z = ... GeV -> everythi
 jupyter lab
 ```
 
-In the browser window that opens, double-click **`Z_peak_lab.ipynb`**.
+In the browser window that opens, double-click **`Z_peak_lab.ipynb`** or **`Fraud_lab.ipynb`**.
 
 ### Option C: no notebook at all
 
 The whole lab also runs as one script; the figures appear in `figures/`:
 
 ```bash
-python scripts/run_all.py
-python scripts/run_all.py --seed 1234567     # your own data set (student ID)
-python scripts/run_all.py --toys 100         # add the Monte Carlo error check (about 30 s)
+python scripts/run_all.py                    # Z boson lab
+python scripts/run_fraud.py                  # card-fraud lab
+python scripts/run_fraud.py --seed 1234567   # your own data set (student ID)
+python scripts/run_fraud.py --toys 100       # add the Monte Carlo error check (about 30 s)
 ```
 
 This is handy for checking your notebook results, but the questions are only in the notebook.
@@ -105,10 +121,10 @@ This is handy for checking your notebook results, but the questions are only in 
 | Time | Part | You will… |
 |---|---|---|
 | 0–5 min | 0. Set up | open the notebook, choose your seed |
-| 5–27 min | 1. Iteration 1 | take run 1, find the bad data, clean it, plot the mass, fit, read the covariance matrix and the $`\Delta\chi^2`$ profile, run the fit checklist |
-| 27–37 min | 2. Iterations 2 and 3 | **predict** the new error, top up with run 2 then run 3, refit and check; see a wrong model fail the checklist |
+| 5–27 min | 1. Iteration 1 | take the first run or batch, find the bad data, clean it, plot it, fit, read the covariance matrix and the $`\Delta\chi^2`$ profile, run the fit checklist |
+| 27–37 min | 2. Iterations 2 and 3 | **predict** the new error, top up twice, refit and check; see a wrong model fail the checklist |
 | 37–43 min | 3. Show the improvement | draw the vertical plot and the error-versus-$`N`$ plot |
-| 43–50 min | 4. Monte Carlo check | repeat each run 100 times and compare $`\sigma_\mathrm{MC}`$ with $`\sigma_\mathrm{fit}`$ |
+| 43–50 min | 4. Monte Carlo check | repeat each run or batch 100 times and compare $`\sigma_\mathrm{MC}`$ with $`\sigma_\mathrm{fit}`$ |
 | 50–57 min | 5. Combine | PDG weighted average; discover why averaging the top-up results is wrong |
 | 57–60 min | 6. Save and push | commit your notebook, results and figures |
 | at home | Bonus | a systematic error that more data cannot fix |
@@ -121,7 +137,8 @@ This is handy for checking your notebook results, but the questions are only in 
 
 ```
 phy408-zpeak-lab/
-├── Z_peak_lab.ipynb        ← START HERE: the lab notebook with all instructions and questions
+├── Z_peak_lab.ipynb        ← START HERE (physics version): instructions and questions
+├── Fraud_lab.ipynb         ← START HERE (card-fraud version): same steps, same questions
 ├── README.md               ← this file
 ├── environment.yml         ← mamba environment (Option B, step 3a)
 ├── requirements.txt        ← pip packages (Option B, step 3c)
@@ -134,12 +151,22 @@ phy408-zpeak-lab/
 │   ├── montecarlo.py       ←   repeat the experiment: sigma_MC versus sigma_fit
 │   ├── combine.py          ←   the PDG weighted average with the scale factor S
 │   └── plotting.py         ←   every figure of the lab
+├── fraudlab/               ← the fraud version: same file layout, reuses the zlab engine
+│   ├── bank.py             ←   the pretend payment gateway: take_data() delivers one batch
+│   ├── cleaning.py         ←   six cleaning steps and the cut flow
+│   ├── conversion.py       ←   amount in MYR = amount x exchange rate
+│   ├── fitting.py          ←   spike + background model, fraud rate, fit with iminuit
+│   ├── diagnostics.py      ←   the same five-point checklist
+│   ├── montecarlo.py       ←   replay the month: sigma_MC versus sigma_fit
+│   └── plotting.py         ←   every figure of the fraud lab
 ├── scripts/
 │   ├── check_setup.py      ←   "is my computer ready?"
-│   ├── run_all.py          ←   the whole lab in one command (Option C)
-│   └── build_notebook.py   ←   (instructor tool) rebuilds the notebook
-├── tests/test_zlab.py      ← sanity tests:  python -m pytest -q
-├── data/raw/               ← run1.csv, run2.csv, run3.csv appear here when you take data
+│   ├── run_all.py          ←   the whole Z lab in one command (Option C)
+│   ├── run_fraud.py        ←   the whole fraud lab in one command (Option C)
+│   ├── build_notebook.py   ←   (instructor tool) rebuilds Z_peak_lab.ipynb
+│   └── build_fraud_notebook.py ← (instructor tool) rebuilds Fraud_lab.ipynb
+├── tests/                  ← sanity tests for both labs:  python -m pytest -q
+├── data/raw/               ← the CSV files appear here when you take data
 ├── figures/                ← your plots are saved here
 └── results/                ← your results table is saved here
 ```
@@ -148,7 +175,7 @@ phy408-zpeak-lab/
 
 ## The physics and statistics on one page
 
-Every formula below is a few lines of code in `zlab/`; each heading names the file where you will find it.
+Every formula below is a few lines of code in `zlab/`; each heading names the file where you will find it. Sections 1 and 2 are written for the Z lab. The fraud lab replaces only those two sections, with the [fraud model](#the-fraud-lab-model) further down; sections 3 to 9 are identical for both.
 
 ### 1. From two muons to one mass (`physics.py`)
 
@@ -302,12 +329,52 @@ Independent error sources add in quadrature:
 \sigma_\mathrm{tot} = \sqrt{\sigma_\mathrm{stat}^2 + \sigma_\mathrm{syst}^2} .
 ```
 
-### The truth
+### The fraud lab model
 
-The simulation uses the PDG values
+**From a record to one number (`fraudlab/conversion.py`).** Each payment is recorded in the card's currency together with the bank's reference exchange rate at that moment:
 
 ```math
-M_Z = 91.1876\ \mathrm{GeV}, \qquad \Gamma_Z = 2.4955\ \mathrm{GeV},
+x = \text{amount} \times \text{rate}, \qquad \text{rate} = 1 \text{ for MYR cards}.
+```
+
+**The model (`fraudlab/fitting.py`).** The bot aims at an amount $`\mu`$ and randomises it with spread $`w`$. The card network's conversion blurs foreign amounts by $`\sigma_\mathrm{res} = 0.15`$ RM. Two Gaussian spreads add in quadrature, so the spike is a Gaussian of width
+
+```math
+\sigma_\mathrm{obs} = \sqrt{w^2 + \sigma_\mathrm{res}^2}.
+```
+
+Normal customers give a falling exponential, $`B(x) \propto e^{-\lambda x}`$, and the expected number of payments in bin $`i`$ is
+
+```math
+\mu_i(\boldsymbol{\theta}) = N_\mathrm{fraud}\, s_i + N_\mathrm{legit}\, b_i,
+\qquad
+\boldsymbol{\theta} = \left(\mu,\ w,\ N_\mathrm{fraud},\ N_\mathrm{legit},\ \lambda\right),
+```
+
+fitted in 40 bins of RM 0.10 between RM 3 and RM 7. Payments come in whole sen, so the bin edges sit at half a sen (RM 2.995, 3.095, …), and no payment ever lands exactly on an edge.
+
+**The headline number.** With $`N_\mathrm{clean}`$ the number of all clean payments (at any amount),
+
+```math
+f = \frac{N_\mathrm{fraud}}{N_\mathrm{clean}},
+\qquad
+\sigma_f = \frac{\sigma\!\left(N_\mathrm{fraud}\right)}{N_\mathrm{clean}} .
+```
+
+**The bonus systematic.** Propagating an uncertainty $`\delta\sigma_\mathrm{res}`$ through $`w = \sqrt{\sigma_\mathrm{obs}^2 - \sigma_\mathrm{res}^2}`$ gives
+
+```math
+\delta w \approx \frac{\sigma_\mathrm{res}}{w}\,\delta\sigma_\mathrm{res} .
+```
+
+### The truth
+
+The Z simulation uses the PDG values, and the fraud simulation uses round numbers:
+
+```math
+M_Z = 91.1876\ \mathrm{GeV}, \quad \Gamma_Z = 2.4955\ \mathrm{GeV};
+\qquad
+\mu = 4.90\ \mathrm{RM}, \quad w = 0.25\ \mathrm{RM}, \quad f = 5.0\,\% ,
 ```
 
 so you can check whether your measurement is right. In a real experiment you never get to do that.
@@ -321,8 +388,8 @@ so you can check whether your measurement is right. In a real experiment you nev
 
    ```bash
    git checkout -b PHY408_<studentID>
-   git add Z_peak_lab.ipynb results/ figures/
-   git commit -m "Z peak lab: M_Z and Gamma_Z from three runs"
+   git add Z_peak_lab.ipynb results/ figures/        # or: git add Fraud_lab.ipynb results/ figures/
+   git commit -m "PHY408 lab: measurement from three deliveries"
    git push -u origin PHY408_<studentID>
    ```
 
@@ -339,7 +406,7 @@ so you can check whether your measurement is right. In a real experiment you nev
 | `ModuleNotFoundError: No module named 'iminuit'` | `mamba install -c conda-forge iminuit` (or `pip install iminuit`), then restart the kernel. |
 | `ModuleNotFoundError: No module named 'zlab'` | Jupyter was started outside the lab folder. Close it, `cd phy408-zpeak-lab`, and run `jupyter lab` again. |
 | Packages are installed but the notebook can't find them | The notebook is using a different Python. Run `mamba activate phy408-zlab` **before** `jupyter lab`, or choose the right kernel at the top right of the notebook. |
-| `AssertionError: Iteration 3 needs run = 3` | In the Iteration 3 cell, change `run = 2` to `run = 3` and rerun that cell. |
+| `AssertionError: Iteration 3 needs run = 3` (or `batch = 3`) | In the Iteration 3 cell, change `run = 2` to `run = 3` (fraud lab: `batch = 2` to `batch = 3`) and rerun that cell. |
 | Plots don't appear | Rerun the cell. On a script, figures are saved to `figures/` instead of shown. |
 | My numbers differ from my neighbour's | Good! If you changed `SEED`, you have a different data set. Your results should agree within the error bars. |
 | `git push` says *permission denied* | You cloned the original repository instead of your fork. Fork it on GitHub, then `git remote set-url origin https://github.com/<your-username>/phy408-zpeak-lab.git`. |
@@ -350,4 +417,4 @@ Still stuck? Raise your hand, or open an *Issue* on this repository with the ful
 
 ---
 
-*PHY408 Data Intensive Science, Xiamen University Malaysia. The code is released under the MIT licence.*
+*PHY408 Data Intensive Science, Xiamen University Malaysia. The code is released under the MIT licence. All data are simulated; the online shop in the fraud lab is fictional.*
